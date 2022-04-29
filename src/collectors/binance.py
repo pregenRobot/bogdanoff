@@ -119,7 +119,11 @@ def crawl_process(parent_prefix: Prefix):
     child_keys = get_subdirs(response, selector="Key")
 
     childcount = len(child_prefixes) + len(child_keys)
-    Prefix.update({Prefix.child_count: childcount}).where(Prefix.uuid == str(parent_prefix.uuid))
+
+    q = (Prefix
+         .update({Prefix.child_count: childcount})
+         .where(Prefix.uuid == parent_prefix.uuid))
+    q.execute()  # Some linters might throw an error on this statement. Works completely fine. Possibly a bug?
 
     for child_prefix in child_prefixes:
         file_name = child_prefix.split("/")[-2]
@@ -128,6 +132,7 @@ def crawl_process(parent_prefix: Prefix):
 
         try:
             db_child_prefix_instance = Prefix.get(Prefix.name == file_name)
+            print("PREFIX EXISTS")
         except DoesNotExist as e:
             Prefix.create(
                 parent_uuid=str(parent_prefix.uuid),
@@ -140,18 +145,14 @@ def crawl_process(parent_prefix: Prefix):
 
     for child_key in child_keys:
         file_name = child_key.split("/")[-1]
-        
-        db_child_prefix_instance = None
-
         try:
-            Key.get(Key.name == file_name)
+            Key.get(Key.path == child_key)
         except DoesNotExist as e:
             Key.create(
             parent_uuid = str(parent_prefix.uuid),
             name = file_name,
             path = child_key
             ).save()
-
 
 fetch_root_path = "data/"
 try:
@@ -162,7 +163,7 @@ except DoesNotExist as e:
 root_db_instance = Prefix.get(Prefix.name == "data")
 crawl_process(root_db_instance)
 
-
+db.close()
 
 
 
