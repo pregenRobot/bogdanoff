@@ -130,29 +130,41 @@ def crawl_process(parent_prefix: Prefix):
 
         db_child_prefix_instance = None
 
-        try:
-            db_child_prefix_instance = Prefix.get(Prefix.name == file_name)
-            print("PREFIX EXISTS")
-        except DoesNotExist as e:
-            Prefix.create(
-                parent_uuid=str(parent_prefix.uuid),
-                name = file_name,
-                path = child_prefix
-            ).save()
-            db_child_prefix_instance = Prefix.get(Prefix.name == file_name)
+        # try:
+            # db_child_prefix_instance = Prefix.get(Prefix.path == child_prefix)
+            # print("PREFIX EXISTS")
+        # except DoesNotExist as e:
+            # Prefix.create(
+                # parent_uuid=str(parent_prefix.uuid),
+                # name = file_name,
+                # path = child_prefix
+            # ).save()
+            # db_child_prefix_instance = Prefix.get(Prefix.path == child_prefix)
+        Prefix.create(
+            parent_uuid=str(parent_prefix.uuid),
+            name = file_name,
+            path = child_prefix
+        ).save()
+
+        db_child_prefix_instance = Prefix.get(Prefix.parent_uuid == parent_prefix.uuid and Prefix.path == child_prefix)
 
         crawl_process(db_child_prefix_instance)
 
     for child_key in child_keys:
         file_name = child_key.split("/")[-1]
-        try:
-            Key.get(Key.path == child_key)
-        except DoesNotExist as e:
-            Key.create(
-            parent_uuid = str(parent_prefix.uuid),
-            name = file_name,
-            path = child_key
-            ).save()
+        # try:
+            # Key.get(Key.path == child_key)
+        # except DoesNotExist as e:
+            # Key.create(
+            # parent_uuid = str(parent_prefix.uuid),
+            # name = file_name,
+            # path = child_key
+            # ).save()
+        Key.create(
+        parent_uuid = str(parent_prefix.uuid),
+        name = file_name,
+        path = child_key
+        ).save()
 
 fetch_root_path = "data/"
 try:
