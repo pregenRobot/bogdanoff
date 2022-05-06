@@ -1,29 +1,105 @@
 import requests
 import os
+from pathlib import Path
+from peewee import *
+import shutup
+from datetime import datetime
+import uuid
 
 
+from typing import *
 
-# response = requests.get(url, stream=True)
-# with open('alaska.zip', "wb") as f:
-    # for chunk in response.iter_content(chunk_size=512):
-        # if chunk:  # filter out keep-alive new chunks
-            # f.write(chunk)
+data_dump_root = "../../dumps"
+db = SqliteDatabase(f"{data_dump_root}/binance.db")
+
+shutup.please()
+
+class Prefix(Model):
+    uuid = CharField()
+    parent_uuid = CharField()
+
+    name = CharField()
+    child_count = IntegerField()
+    path = CharField()
+
+    created_at = DateTimeField()
+    updated_at = DateTimeField()
+
+    class Meta:
+        database = db
+
+    @staticmethod
+    def create(parent_uuid: str, name: str, path:str, child_count: int = -1):
+        return Prefix(
+                uuid=uuid.uuid4(),
+                parent_uuid = parent_uuid,
+                name = name,
+                path = path,
+                child_count = child_count,
+                created_at = datetime.now(),
+                updated_at = datetime.now()
+                )
 
 
-with open("../../dumps/urls.txt") as urlf:
-    all_urls:list[str] = list(urlf)
+class Key(Model):
+    uuid = CharField()
+    parent_uuid = CharField()
+
+    name = CharField()
+    path = CharField()
+
+    created_at = DateTimeField()
+    updated_at = DateTimeField()
+
+    class Meta:
+        database = db
+
+    @staticmethod
+    def create(parent_uuid: str, name: str, path: str):
+        return Key(
+                uuid = uuid.uuid4(),
+                parent_uuid = parent_uuid,
+                name  = name,
+                path = path,
+                created_at = datetime.now(),
+                updated_at = datetime.now()
+                )
 
 
-clean_urls = map( lambda url: url.strip(), all_urls)
+class CrawlLog(Model):
+    uuid = CharField()
+    command = CharField()
+    response_body = CharField()
+    created_at = DateTimeField()
 
-download_urls = filter(lambda url: url[-8:] != "CHECKSUM", clean_urls)
+    class Meta:
+        database = db
 
-current_downloads = list(os.walk("../../dumps/"))[0][2]
 
-for url in list(download_urls)[:2]:
-    file_name = url.split("/")[-1]
-    if file_name not in current_downloads:
-        print(url)
+db.connect()
+
+query = (Key.select(Key.path, Key.name))
+
+for key in query:
+
+    # Example url
+    # https://data.binance.vision/data/futures/um/daily/klines/1000BTTCUSDT/12h/1000BTTCUSDT-12h-2022-04-11.zip
+
+    url = f"https://data.binance.vision/{key.path}"
+    print(url)
+    response = requests.get(url, stream = True)
+
+    local_folder_path = data_dump_root + "/downloads/" + "/".join(key.path.split("/")[:-2])
+    print(local_folder_path)
+    Path(local_folder_path).mkdir(parents=True, exist_ok=True)
+
+    local_file_path = local_folder_path + "/" + key.name
+    print(local_file_path)
+    
+    with open(local_file_path, "wb+") as f:
+        for chunk in response.iter_content(chunk_size=512):
+            if chunk:
+                f.write(chunk)
 
 
 
