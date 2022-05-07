@@ -10,6 +10,7 @@ import tempfile
 from zipfile import ZipFile
 import io
 import re
+from tqdm import tqdm
 
 data_dump_root = "../../dumps"
 db = SqliteDatabase(f"{data_dump_root}/binance.db")
@@ -104,7 +105,11 @@ def download_csv(key:Key):
     extracted_bytes = extract_zip(response.content)
     return extracted_bytes.decode("utf-8", "ignore")
 
-for key in query:
+# for i,key in enumerate(query):
+
+query_rows = query.count(db)
+print(query_rows)
+for key in tqdm(query, total=query_rows):
     if key.path.endswith("CHECKSUM"):
         continue
 
