@@ -1,3 +1,4 @@
 .DS_Store
 dumps/binance.db
 dumps/*
+**/*/config.ini
