@@ -1,0 +1,31 @@
+version: '3.8'
+
+volumes:
+  dbstorage:
+
+networks:
+  system:
+    driver: bridge
+
+services:
+  db:
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=maat1
+      - POSTGRES_PASSWORD=maat1password
+    ports:
+      - '5432:5432'
+    volumes: 
+      - dbstorage:/var/lib/postgresql/data
+  binance_crawler:
+    build:
+      context:
+        ./binance_crawler
+    depends_on:
+      - db
+    links:
+      - db
+    networks:
+      - system
+
